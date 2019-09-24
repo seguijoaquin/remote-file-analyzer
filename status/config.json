@@ -1,0 +1,8 @@
+{
+    "workers_daemon" : 3,
+    "workers_status" : 3,
+    "workers_processor" : 3,
+    "daemon_url" : ":8081",
+    "status_url" : ":8082",
+    "processor_url" : ":8083"
+}
