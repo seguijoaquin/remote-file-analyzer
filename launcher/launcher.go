@@ -1,4 +1,4 @@
-package main
+package launcher
 
 import (
 	"bufio"
@@ -9,7 +9,8 @@ import (
 	"os"
 )
 
-type launcherDTO struct {
+// LauncherDTO holds the info of
+type LauncherDTO struct {
 	Status bool   `json:"status"`
 	Host   string `json:"host"`
 	Path   string `json:"path"`
@@ -23,7 +24,7 @@ func handleError(err error) {
 	}
 }
 
-func handleArguments() launcherDTO {
+func handleArguments() LauncherDTO {
 	pHost := flag.String("host", "", "The IP address of the host we want to analyze")
 	pStatus := flag.Bool("status", false, "Returns the host analisys status (needs a host)")
 	pPath := flag.String("path", "/", "The root path of the analysis")
@@ -35,7 +36,7 @@ func handleArguments() launcherDTO {
 		os.Exit(1)
 	}
 
-	return launcherDTO{Host: *pHost, Status: *pStatus, Path: *pPath}
+	return LauncherDTO{Host: *pHost, Status: *pStatus, Path: *pPath}
 }
 
 func send(conn *net.Conn, request []byte) error {
@@ -53,7 +54,7 @@ func send(conn *net.Conn, request []byte) error {
 }
 
 func main() {
-	var message launcherDTO
+	var message LauncherDTO
 	var conn net.Conn
 	var err error
 	var scanner *bufio.Scanner
