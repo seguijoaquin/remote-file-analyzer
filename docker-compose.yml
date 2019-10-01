@@ -1,20 +1,24 @@
 version: "3"
 services:
+  # processor:
+  #   build:
+  #     context: ./src/
+  #     dockerfile: processor/Dockerfile
+  # persistor:
+  #   build:
+  #     context: ./src/
+  #     dockerfile: persistor/Dockerfile
+  status:
+    container_name: status
+    build:
+      context: ./src/
+      dockerfile: status/Dockerfile
   daemon:
+    container_name: daemon
     build:
       context: ./src/
       dockerfile: daemon/Dockerfile
     ports:
       - "8081:8081"
-  processor:
-    build:
-      context: ./src/
-      dockerfile: processor/Dockerfile
-  persistor:
-    build:
-      context: ./src/
-      dockerfile: persistor/Dockerfile
-  status:
-    build:
-      context: ./src/
-      dockerfile: status/Dockerfile
+    depends_on:
+       - status

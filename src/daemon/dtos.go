@@ -17,5 +17,5 @@ type statusRequestDTO struct {
 
 type statusResponseDTO struct {
 	Status  string `json:"status"`
-	Pending string `json:"pending"`
+	Pending int    `json:"pending"`
 }

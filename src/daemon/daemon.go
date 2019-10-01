@@ -25,7 +25,7 @@ func send(conn *net.Conn, request []byte) error {
 }
 
 func buildTraceMessage(host string) string {
-	return "Follow your progress with --host " + host + "--status"
+	return "Follow your progress with --host " + host + " -report"
 }
 
 func startNewAnalysis(id int, launcherRequest launcherRequestDTO) error {
@@ -53,16 +53,6 @@ func returnAnalysisReport(id int, launcherConnection *net.Conn, statusResponse s
 
 func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 	defer wg.Done()
-
-	// Connecto to StatusController
-	statusConn, err := net.Dial("tcp", setup.getStatusHost())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
-		return
-	}
-	defer statusConn.Close()
-
-	statusDecoder := json.NewDecoder(statusConn)
 
 	// TODO: handle graceful quit
 	for {
@@ -99,6 +89,18 @@ func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 				fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 				return
 			}
+
+			// Connecto to StatusController
+			statusConn, err := net.Dial("tcp", setup.getStatusHost())
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
+				return
+			}
+			defer statusConn.Close()
+
+			fmt.Printf("[worker: %d] connected to %s\n", id, setup.getStatusHost())
+
+			statusDecoder := json.NewDecoder(statusConn)
 
 			// Sends query message to Status Controller
 			if err = send(&statusConn, statusMessage); err != nil {
