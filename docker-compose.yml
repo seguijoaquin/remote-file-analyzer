@@ -1,0 +1,10 @@
+version: "3"
+services:
+  daemon:
+    build:
+      context: .
+      dockerfile: src/daemon/Dockerfile
+  launcher:
+    build:
+      context: .
+      dockerfile: src/launcher/Dockerfile
