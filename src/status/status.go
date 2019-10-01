@@ -21,16 +21,16 @@ func send(conn *net.Conn, request []byte) error {
 	return err
 }
 
-func handleQueryAction(pendingFiles map[string]int, statusRequest statusRequestDTO, conn *net.Conn) error {
+func handleQueryAction(statusStorage map[string]int, statusRequest statusRequestDTO, conn *net.Conn) error {
 
 	status := statusNotFound
 	pending := 0
-	if value, ok := pendingFiles[statusRequest.Host]; ok {
+	if value, ok := statusStorage[statusRequest.Host]; ok {
 		if value == 0 {
 			status = "FINALIZADO"
 		} else {
 			status = "PROCESANDO"
-			pending = pendingFiles[statusRequest.Host]
+			pending = statusStorage[statusRequest.Host]
 		}
 	}
 
@@ -45,20 +45,20 @@ func handleQueryAction(pendingFiles map[string]int, statusRequest statusRequestD
 	return send(conn, statusResponse)
 }
 
-func handleAddAction(pendingFiles map[string]int, statusRequest statusRequestDTO, conn *net.Conn) error {
+func handleAddAction(statusStorage map[string]int, statusRequest statusRequestDTO, conn *net.Conn) error {
 	status := statusNoPrevAnalysis
-	if _, ok := pendingFiles[statusRequest.Host]; ok {
+	if _, ok := statusStorage[statusRequest.Host]; ok {
 		status = statusAlreadyExists
 		if statusRequest.Action == "update" {
-			pendingFiles[statusRequest.Host] += statusRequest.Pending
+			statusStorage[statusRequest.Host] += statusRequest.Pending
 		}
 	} else {
 		// If it does not exist we add it
-		pendingFiles[statusRequest.Host] = 0
+		statusStorage[statusRequest.Host] = 0
 	}
 
 	statusMessage, err := json.Marshal(statusResponseDTO{
-		Status: status, Pending: pendingFiles[statusRequest.Host]})
+		Status: status, Pending: statusStorage[statusRequest.Host]})
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func main() {
 	defer listener.Close()
 
 	// TODO: refresh list with TTL
-	pendingFiles := make(map[string]int)
+	statusStorage := make(map[string]int)
 
 	for {
 		func() {
@@ -97,14 +97,14 @@ func main() {
 			}
 
 			if statusRequest.Action == "query" {
-				if err := handleQueryAction(pendingFiles, statusRequest, &conn); err != nil {
+				if err := handleQueryAction(statusStorage, statusRequest, &conn); err != nil {
 					fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
 					return
 				}
 			} else {
 				// Handle action "update" from FTP Processor
 				// and action "add" from Daemon
-				if err := handleAddAction(pendingFiles, statusRequest, &conn); err != nil {
+				if err := handleAddAction(statusStorage, statusRequest, &conn); err != nil {
 					fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
 					return
 				}
