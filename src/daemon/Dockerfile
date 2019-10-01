@@ -1,6 +1,11 @@
 FROM golang:alpine
 
 WORKDIR /app
-COPY daemon.go /app/
+COPY daemon/config.go /app/
+COPY daemon/config.json /app/
+COPY daemon/dtos.go /app/
+COPY daemon/daemon.go /app/
 
-CMD go run daemon.go
+RUN go build
+
+CMD ./app

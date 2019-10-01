@@ -1,4 +1,4 @@
-package launcher
+package main
 
 import (
 	"bufio"
@@ -7,22 +7,30 @@ import (
 	"fmt"
 	"net"
 	"os"
-
-	"github.com/seguijoaquin/remote-file-analyzer/src/config"
-	"github.com/seguijoaquin/remote-file-analyzer/src/network"
 )
 
-// RequestDTO holds the info of
-type RequestDTO struct {
-	Status bool   `json:"status"`
-	Host   string `json:"host"`
-	Path   string `json:"path"`
-	Data   string `json:"data"`
+type launcherRequest struct {
+	Report   bool   `json:"report"`
+	Host     string `json:"host"`
+	Path     string `json:"path"`
+	User     string `json:"user"`
+	Password string `json:"password"`
 }
 
-// ResponseDTO holds the info of
-type ResponseDTO struct {
-	Message string `json:"message"`
+// Send is responsible for sending messages through a
+// generic stream-oriented network connection.
+func send(conn *net.Conn, request []byte) error {
+	var err error
+	var n int
+	n, err = (*conn).Write(request)
+
+	for n < len(request) {
+		n, err = (*conn).Write(request[n:])
+		if err != nil {
+			break
+		}
+	}
+	return err
 }
 
 func handleError(err error) {
@@ -32,10 +40,16 @@ func handleError(err error) {
 	}
 }
 
-func handleArguments() RequestDTO {
-	pHost := flag.String("host", "", "The IP address of the host we want to analyze")
-	pStatus := flag.Bool("status", false, "Returns the host analisys status (needs a host)")
-	pPath := flag.String("path", "/", "The root path of the analysis")
+func handleArguments() (request launcherRequest, daemonEndpoint string) {
+	pHost := flag.String("host", "",
+		"The IP address of the host we want to analyze")
+	pReport := flag.Bool("report", false,
+		"Returns the host analisys status (needs a host)")
+	pPath := flag.String("path", "/",
+		"The root path of the analysis")
+	pDaemonEndpoint := flag.String("daemon", "0.0.0.0:8081",
+		"The Daemon endpoint of Remote-File-Analyzer app. Default is 0.0.0.0:8081")
+	// TODO: Handle user & password
 	flag.Parse()
 
 	if *pHost == "" {
@@ -44,12 +58,12 @@ func handleArguments() RequestDTO {
 		os.Exit(1)
 	}
 
-	return RequestDTO{Host: *pHost, Status: *pStatus, Path: *pPath}
+	return launcherRequest{Host: *pHost, Report: *pReport, Path: *pPath}, (*pDaemonEndpoint)
 }
 
 func main() {
-	message := handleArguments()
-	conn, err := net.Dial("tcp", config.GetDaemonHost())
+	message, daemonEndpoint := handleArguments()
+	conn, err := net.Dial("tcp", daemonEndpoint)
 	handleError(err)
 	defer conn.Close()
 
@@ -61,7 +75,7 @@ func main() {
 
 	fmt.Println("Request: " + string(request))
 
-	if err := network.Send(&conn, request); err != nil {
+	if err := send(&conn, request); err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
 		return // Return gracefully to call deferred methods
 	}
