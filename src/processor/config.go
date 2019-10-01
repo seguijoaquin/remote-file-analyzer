@@ -29,7 +29,10 @@ type Configuration struct {
 //
 // ref: https://golang.org/doc/effective_go.html#init
 var (
-	setup Configuration
+	setup                Configuration
+	statusNotFound       = "NOT_FOUND"
+	statusNoPrevAnalysis = "NO_PREV_ANALYSIS"
+	statusAlreadyExists  = "ANALYSIS_ALREADY_EXISTS"
 )
 
 func check(e error) {

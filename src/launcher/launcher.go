@@ -49,7 +49,9 @@ func handleArguments() (request launcherRequest, daemonEndpoint string) {
 		"The root path of the analysis")
 	pDaemonEndpoint := flag.String("daemon", "0.0.0.0:8081",
 		"The Daemon endpoint of Remote-File-Analyzer app. Default is 0.0.0.0:8081")
-	// TODO: Handle user & password
+	// TODO: Handle user & password gracefully
+	pUser := flag.String("user", "guest", "FTP user")
+	pPassword := flag.String("pass", "12345", "FTP password")
 	flag.Parse()
 
 	if *pHost == "" {
@@ -58,7 +60,11 @@ func handleArguments() (request launcherRequest, daemonEndpoint string) {
 		os.Exit(1)
 	}
 
-	return launcherRequest{Host: *pHost, Report: *pReport, Path: *pPath}, (*pDaemonEndpoint)
+	return launcherRequest{Host: *pHost,
+		Report:   *pReport,
+		Path:     *pPath,
+		User:     *pUser,
+		Password: *pPassword}, (*pDaemonEndpoint)
 }
 
 func main() {
@@ -80,8 +86,6 @@ func main() {
 		return // Return gracefully to call deferred methods
 	}
 
-	fmt.Println("Response:")
-
 	scanner := bufio.NewScanner(conn)
 
 	for scanner.Scan() {
@@ -90,6 +94,5 @@ func main() {
 
 	if scanner.Err() != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
-		// No need to return here
 	}
 }

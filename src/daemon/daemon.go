@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -28,10 +29,51 @@ func buildTraceMessage(host string) string {
 	return "Follow your progress with --host " + host + " -report"
 }
 
+func processorConnect(launcherRequest launcherRequestDTO) error {
+	// Connect to to FTP Processor
+	processorConn, err := net.Dial("tcp", setup.getProcessorHost())
+	if err != nil {
+		return err
+	}
+	defer processorConn.Close()
+
+	processorDecoder := json.NewDecoder(processorConn)
+
+	loginMessage, err := json.Marshal(
+		processorRequestDTO{
+			Host:     launcherRequest.Host,
+			Path:     launcherRequest.Path,
+			User:     launcherRequest.User,
+			Password: launcherRequest.Password})
+	if err != nil {
+		return err
+	}
+
+	// Sends login to FTP
+	if err := send(&processorConn, loginMessage); err != nil {
+		return err
+	}
+
+	// Collect Processor Response
+	var processorResponse processorResponseDTO
+	if err := processorDecoder.Decode(&processorResponse); err != nil {
+		return err
+	}
+
+	if processorResponse.Error != "" {
+		return errors.New(processorResponse.Error)
+	}
+	return nil
+}
+
 func startNewAnalysis(id int, launcherRequest launcherRequestDTO) error {
-	fmt.Printf("[worker: %d] No previus analysis\n", id)
-	// Connect to FTP
+	fmt.Printf("[worker: %d] No previus analysis for %s\n", id, launcherRequest.Host)
+
+	// Connect to FTP Processor
 	fmt.Printf("[worker: %d] Connecting to ftp://%s\n", id, launcherRequest.Host)
+	if err := processorConnect(launcherRequest); err != nil {
+		return err
+	}
 	// Launch new analysis
 	fmt.Printf("[worker: %d] Launching new job to FTP processor for %s\n", id, launcherRequest.Host)
 

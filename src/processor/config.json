@@ -1,0 +1,13 @@
+{
+    "workers_daemon" : 3,
+    "workers_processor" : 3,
+    "workers_persistor" : 3,
+    "daemon_url" : "daemon",
+    "daemon_port" : "8081",
+    "status_url" : "status",
+    "status_port": "9081",
+    "processor_url" : "processor",
+    "processor_port" : "10081",
+    "persistor_url" : "persistor",
+    "persistor_port" : "11081"
+}
