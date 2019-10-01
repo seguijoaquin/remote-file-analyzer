@@ -1,2 +1,2 @@
 #!/bin/bash
-docker run -d --name ftpd_server -p 21:21 -p 30000-30009:30000-30009 -e "PUBLICHOST=localhost" -e FTP_USER_NAME=guest -e FTP_USER_PASS=12345 -e FTP_USER_HOME=/home/guest  stilliard/pure-ftpd:hardened
+docker run -d --name ftpd_server --net myProject -p 21:21 -p 30000-30009:30000-30009 -e "PUBLICHOST=localhost" -e FTP_USER_NAME=guest -e FTP_USER_PASS=12345 -e FTP_USER_HOME=/home/guest  stilliard/pure-ftpd:hardened

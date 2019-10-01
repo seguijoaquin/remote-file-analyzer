@@ -1,9 +1,9 @@
 version: "3"
 services:
-  # processor:
-  #   build:
-  #     context: ./src/
-  #     dockerfile: processor/Dockerfile
+  processor:
+    build:
+      context: ./src/
+      dockerfile: processor/Dockerfile
   # persistor:
   #   build:
   #     context: ./src/
@@ -22,3 +22,17 @@ services:
       - "8081:8081"
     depends_on:
        - status
+  ftpd_server_1:
+    image: stilliard/pure-ftpd:hardened
+    container_name: ftpd_1
+    ports:
+      - "21:21"
+      - "30000-30009:30000-30009"
+    volumes: 
+      - "./client/home:/home/guest/"
+    environment:
+      PUBLICHOST: "localhost"
+      FTP_USER_NAME: guest
+      FTP_USER_PASS: 12345
+      FTP_USER_HOME: /home/guest
+    restart: always
