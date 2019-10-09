@@ -45,13 +45,13 @@ func handleArguments() (request launcherRequest, daemonEndpoint string) {
 		"The IP address of the host we want to analyze")
 	pReport := flag.Bool("report", false,
 		"Returns the host analisys status (needs a host)")
-	pPath := flag.String("path", "/",
+	pPath := flag.String("path", "/home",
 		"The root path of the analysis")
 	pDaemonEndpoint := flag.String("daemon", "0.0.0.0:8081",
 		"The Daemon endpoint of Remote-File-Analyzer app. Default is 0.0.0.0:8081")
 	// TODO: Handle user & password gracefully
-	pUser := flag.String("user", "guest", "FTP user")
-	pPassword := flag.String("pass", "12345", "FTP password")
+	pUser := flag.String("user", "user1", "FTP user")
+	pPassword := flag.String("pass", "Lalala123456", "FTP password")
 	flag.Parse()
 
 	if *pHost == "" {

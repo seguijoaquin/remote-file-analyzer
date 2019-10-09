@@ -42,15 +42,52 @@ func processorConnect(launcherRequest launcherRequestDTO) error {
 	loginMessage, err := json.Marshal(
 		processorRequestDTO{
 			Host:     launcherRequest.Host,
-			Path:     launcherRequest.Path,
 			User:     launcherRequest.User,
-			Password: launcherRequest.Password})
+			Password: launcherRequest.Password,
+			Action:   "LOGIN",
+		})
 	if err != nil {
 		return err
 	}
 
 	// Sends login to FTP
 	if err := send(&processorConn, loginMessage); err != nil {
+		return err
+	}
+
+	// Collect Processor Response
+	var processorResponse processorResponseDTO
+	if err := processorDecoder.Decode(&processorResponse); err != nil {
+		return err
+	}
+
+	if processorResponse.Error != "" {
+		return errors.New(processorResponse.Error)
+	}
+	return nil
+}
+
+func launchAnalysis(id int, launcherRequest launcherRequestDTO) error {
+	// Connect to to FTP Processor
+	processorConn, err := net.Dial("tcp", setup.getProcessorHost())
+	if err != nil {
+		return err
+	}
+	defer processorConn.Close()
+
+	processorDecoder := json.NewDecoder(processorConn)
+
+	analysisMessage, err := json.Marshal(
+		processorRequestDTO{
+			Host:   launcherRequest.Host,
+			Path:   launcherRequest.Path,
+			Action: "LIST",
+		})
+	if err != nil {
+		return err
+	}
+
+	if err := send(&processorConn, analysisMessage); err != nil {
 		return err
 	}
 
@@ -77,7 +114,7 @@ func startNewAnalysis(id int, launcherRequest launcherRequestDTO) error {
 	// Launch new analysis
 	fmt.Printf("[worker: %d] Launching new job to FTP processor for %s\n", id, launcherRequest.Host)
 
-	return nil
+	return launchAnalysis(id, launcherRequest)
 }
 
 func returnAnalysisReport(id int, launcherConnection *net.Conn, statusResponse statusResponseDTO) error {
@@ -86,9 +123,7 @@ func returnAnalysisReport(id int, launcherConnection *net.Conn, statusResponse s
 	}
 	if statusResponse.Status != statusNotFound {
 		// TODO: Query to persistor & return
-		if err := send(launcherConnection, []byte("Persistor response:\nfile_1\t\t500\n")); err != nil {
-			return err
-		}
+		return send(launcherConnection, []byte("Persistor response:\nfile_1\t\t500\n"))
 	}
 	return nil
 }
@@ -172,14 +207,14 @@ func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 			// Only if no previuos analysis exists we launch new job
 			if statusResponse.Status == statusNoPrevAnalysis {
 				if err := startNewAnalysis(id, launcherRequest); err != nil {
-					fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
+					fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 					return
 				}
 			}
 
 			// Return trace analysis message
 			if err = send(&launcherConnection, []byte(buildTraceMessage(launcherRequest.Host))); err != nil {
-				fmt.Fprintf(os.Stderr, "Fatal error: %s\n", err.Error())
+				fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 				return
 			}
 		}()

@@ -1,13 +1,15 @@
 version: "3"
 services:
   processor:
+    container_name: processor
     build:
       context: ./src/
       dockerfile: processor/Dockerfile
-  # persistor:
-  #   build:
-  #     context: ./src/
-  #     dockerfile: persistor/Dockerfile
+  persistor:
+    container_name: persistor
+    build:
+      context: ./src/
+      dockerfile: persistor/Dockerfile
   status:
     container_name: status
     build:
@@ -22,17 +24,16 @@ services:
       - "8081:8081"
     depends_on:
        - status
-  ftpd_server_1:
-    image: stilliard/pure-ftpd:hardened
-    container_name: ftpd_1
-    ports:
-      - "21:21"
-      - "30000-30009:30000-30009"
-    volumes: 
-      - "./client/home:/home/guest/"
+  ftpserver:
+    container_name: ftpserver
+    build:
+      context: ./src/alpine_ftp
+      dockerfile: Dockerfile
+    expose:
+      - 21
+    volumes:
+      - ${PWD}/src/alpine_ftp/ftpfolder:/home/user1
     environment:
-      PUBLICHOST: "localhost"
-      FTP_USER_NAME: guest
-      FTP_USER_PASS: 12345
-      FTP_USER_HOME: /home/guest
-    restart: always
+      - NAME=user1
+      - PASS=Lalala123456
+      - FOLDER=/home/user1

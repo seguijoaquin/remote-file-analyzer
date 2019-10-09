@@ -33,6 +33,7 @@ type processorRequestDTO struct {
 	Path     string `json:"path"`
 	User     string `json:"user"`
 	Password string `json:"password"`
+	Action   string `json:"action"`
 }
 
 type processorResponseDTO struct {
@@ -46,6 +47,7 @@ type persistorRequestDTO struct {
 	Path     string `json:"path"`
 	FileName string `json:"file_name"`
 	FileSize int    `json:"file_size"`
+	IsDir    bool   `json:"is_dir"`
 }
 
 type persistorResponseDTO struct {
