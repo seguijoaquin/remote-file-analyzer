@@ -10,6 +10,8 @@ services:
     build:
       context: ./src/
       dockerfile: persistor/Dockerfile
+    volumes:
+      - ${PWD}/tmp/storage/:/storage
   status:
     container_name: status
     build:

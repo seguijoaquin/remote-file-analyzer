@@ -45,7 +45,7 @@ func handleArguments() (request launcherRequest, daemonEndpoint string) {
 		"The IP address of the host we want to analyze")
 	pReport := flag.Bool("report", false,
 		"Returns the host analisys status (needs a host)")
-	pPath := flag.String("path", "/home",
+	pPath := flag.String("path", "/home/user1",
 		"The root path of the analysis")
 	pDaemonEndpoint := flag.String("daemon", "0.0.0.0:8081",
 		"The Daemon endpoint of Remote-File-Analyzer app. Default is 0.0.0.0:8081")

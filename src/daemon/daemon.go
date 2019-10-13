@@ -117,13 +117,31 @@ func startNewAnalysis(id int, launcherRequest launcherRequestDTO) error {
 	return launchAnalysis(id, launcherRequest)
 }
 
-func returnAnalysisReport(id int, launcherConnection *net.Conn, statusResponse statusResponseDTO) error {
+func returnAnalysisReport(id int, launcherConnection *net.Conn, launcherRequest launcherRequestDTO, statusResponse statusResponseDTO) error {
 	if err := send(launcherConnection, []byte("Status: "+statusResponse.Status+"\n")); err != nil {
 		return err
 	}
 	if statusResponse.Status != statusNotFound {
 		// TODO: Query to persistor & return
-		return send(launcherConnection, []byte("Persistor response:\nfile_1\t\t500\n"))
+		conn, err := net.Dial("tcp", setup.getPersistorHost())
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		request, _ := json.Marshal(persistorRequestDTO{
+			Action: "query",
+			Host:   launcherRequest.Host,
+			Path:   launcherRequest.Path,
+		})
+		if err := send(&conn, request); err != nil {
+			return err
+		}
+
+		persistorDecoder := json.NewDecoder(conn)
+		var persistorMessage persistorResponseDTO
+		persistorDecoder.Decode(&persistorMessage)
+
+		return send(launcherConnection, []byte(persistorMessage.Message))
 	}
 	return nil
 }
@@ -196,7 +214,7 @@ func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 			if launcherRequest.Report {
 				// We've sent a "query" to status controller
 				// Tell launcher if job is done or pending
-				if err := returnAnalysisReport(id, &launcherConnection, statusResponse); err != nil {
+				if err := returnAnalysisReport(id, &launcherConnection, launcherRequest, statusResponse); err != nil {
 					fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 					return
 				}
@@ -210,6 +228,8 @@ func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 					fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 					return
 				}
+			} else {
+				fmt.Printf("[worker: %d] A previus analysis was found for %s\n", id, launcherRequest.Host)
 			}
 
 			// Return trace analysis message
