@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -209,7 +210,7 @@ func (w *ftpWorker) listSubdir(request processorRequestDTO, fileName string) err
 
 	processorRequest, err := json.Marshal(processorRequestDTO{
 		Host:   request.Host,
-		Path:   fmt.Sprintf("%s/%s", request.Path, fileName),
+		Path:   filepath.Join(request.Path, fileName),
 		Action: "LIST",
 	})
 	if err != nil {
