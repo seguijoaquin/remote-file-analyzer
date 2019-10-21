@@ -42,12 +42,12 @@ func scanSubDir(basePath string) []byte {
 	return fileSize
 }
 
-func handleRequest(conn *net.Conn, request persistorRequestDTO) error {
+func handleRequest(id int, conn *net.Conn, request persistorRequestDTO) error {
 	basePath := filepath.Join("/storage", request.Host, request.Path)
 	// Handle an incoming file that needs saving to FS
 	if request.Action == "add" {
-		fmt.Printf("Received message [host: %s][path: %s] [fileName: %s] [fileSize: %d]\n",
-			request.Host, request.Path, request.FileName, request.FileSize)
+		fmt.Printf("[worker: %d] Received message [host: %s][path: %s] [fileName: %s] [fileSize: %d]\n",
+			id, request.Host, request.Path, request.FileName, request.FileSize)
 
 		if err := os.MkdirAll(basePath, 0755); err != nil {
 			return err
@@ -116,7 +116,7 @@ func worker(id int, pListener *net.Listener, wg *sync.WaitGroup) {
 				id, persistorRequest.Host, persistorRequest.Path, persistorRequest.Action,
 				persistorRequest.FileName, persistorRequest.FileSize, persistorRequest.IsDir)
 
-			if err := handleRequest(&conn, persistorRequest); err != nil {
+			if err := handleRequest(id, &conn, persistorRequest); err != nil {
 				fmt.Fprintf(os.Stderr, "[worker: %d] Fatal error: %s\n", id, err.Error())
 				return
 			}
