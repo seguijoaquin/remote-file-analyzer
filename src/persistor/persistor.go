@@ -42,12 +42,19 @@ func scanSubDir(basePath string) []byte {
 	return fileSize
 }
 
+func analysisExists(path string) bool {
+	if _, err := os.Stat(path); err == nil {
+		return true
+	}
+	return false
+}
+
 func handleRequest(id int, conn *net.Conn, request persistorRequestDTO) error {
 	basePath := filepath.Join("/storage", request.Host, request.Path)
 	// Handle an incoming file that needs saving to FS
 	if request.Action == "add" {
-		fmt.Printf("[worker: %d] Received message [host: %s][path: %s] [fileName: %s] [fileSize: %d]\n",
-			id, request.Host, request.Path, request.FileName, request.FileSize)
+		// fmt.Printf("[worker: %d] Received message [host: %s][path: %s] [fileName: %s] [fileSize: %d]\n",
+		// 	id, request.Host, request.Path, request.FileName, request.FileSize)
 
 		if err := os.MkdirAll(basePath, 0755); err != nil {
 			return err
@@ -66,26 +73,44 @@ func handleRequest(id int, conn *net.Conn, request persistorRequestDTO) error {
 		message := "REPORT:\n"
 
 		fmt.Printf("Listing %s\n", basePath)
-		for _, entry := range c {
-			fileSize := []byte("")
-			fmt.Println(" ", entry.Name(), string(fileSize))
-			if !entry.IsDir() {
-				fileSize, _ = ioutil.ReadFile(filepath.Join(basePath, entry.Name()))
-			} else {
-				dirSize := entry.Size()
-				fileSizeTmp := scanSubDir(filepath.Join(basePath, entry.Name()))
-				fileSizeInt, _ := strconv.ParseInt(string(fileSizeTmp), 10, 64)
-				// We need to add the directory size to the total file size
-				dirSize += fileSizeInt
-				fileSize = []byte(strconv.FormatInt(dirSize, 10)) //int64 to string in base 10
+
+		analysisPath := filepath.Join(basePath, "dir_analysis_report")
+		if analysisExists(analysisPath) {
+			fmt.Printf("Analysis exists for path: %s\n", analysisPath)
+			analysisContent, err := ioutil.ReadFile(analysisPath)
+			if err != nil {
+				return err
+			}
+			message += string(analysisContent)
+			fmt.Printf("Content: \n %s \n --- END ----\n", message)
+		} else {
+			fmt.Printf("Analysis does not exists for path: %s\n", analysisPath)
+			for _, entry := range c {
+				fileSize := []byte("")
+				//fmt.Println(" ", filepath.Join(basePath, entry.Name()), string(fileSize))
+				if !entry.IsDir() {
+					fileSize, _ = ioutil.ReadFile(filepath.Join(basePath, entry.Name()))
+				} else {
+					dirSize := entry.Size()
+					fileSizeTmp := scanSubDir(filepath.Join(basePath, entry.Name()))
+					fileSizeInt, _ := strconv.ParseInt(string(fileSizeTmp), 10, 64)
+					// We need to add the directory size to the total file size
+					dirSize += fileSizeInt
+					fileSize = []byte(strconv.FormatInt(dirSize, 10)) //int64 to string in base 10
+				}
+
+				message += fmt.Sprintf(" %s %s bytes\n", entry.Name(), string(fileSize))
 			}
 
-			message += fmt.Sprintf(" %s %s bytes\n", entry.Name(), string(fileSize))
+			if err := ioutil.WriteFile(analysisPath, []byte(message), 0755); err != nil {
+				return err
+			}
 		}
 
 		response, _ := json.Marshal(persistorResponseDTO{
 			Message: message,
 		})
+
 		return send(conn, []byte(response))
 	}
 	return nil
